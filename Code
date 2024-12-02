@@ -1,0 +1,82 @@
+//Automatic Plant Watering System
+// C++ code
+
+//Set constant ints (pin #s and constant values)
+const int soilSensor = A0;
+const int soilSensorElectric = 8;
+const int redLED = 2;
+const int greenLED = 3;
+const int yellowLED = 4;
+const int pump = 11;
+const int button = 5;
+const int maxDry = 20;	//max number of dry readings in a row before yellow light turns on indicating an issue
+const int delayTime = 100; //time between sensor readings (milliseconds)
+
+int dryCount = 0; //initial value
+int sensorReading;
+
+//readings observed between 250 and 600
+  //200-300 indicates wet soil
+  //we want soil to dry a little to prevent rot
+int threshold = 475;
+
+//declare outputs and input
+void setup() {
+ pinMode(redLED, OUTPUT); 
+ pinMode(greenLED, OUTPUT);
+ pinMode(yellowLED, OUTPUT);
+ pinMode(soilSensorElectric, OUTPUT);
+ pinMode(pump, OUTPUT);
+ pinMode(button, INPUT);
+  
+ //initialize communication
+ Serial.begin(9600);
+ digitalWrite(soilSensorElectric, HIGH);  //turn sensor power on high
+}
+
+void loop(){
+  delay(10); //wait a bit to get reading
+  
+  bool buttonPressed = digitalRead(button)== HIGH;
+  
+  if(buttonPressed){
+    digitalWrite(greenLED, LOW);
+    digitalWrite(redLED, HIGH);
+    digitalWrite(pump, HIGH);
+    delay(6000); //add delay to have pump run for 6 seconds
+    digitalWrite(pump, LOW); //turn off pump
+    delay(200); //"debounce" delay for button
+  }
+  else {
+  sensorReading = analogRead(soilSensor);  //read sensor data
+  Serial.println(sensorReading);        //to monitor sensor readings
+  
+  //if statements
+  if(sensorReading > threshold){
+    dryCount++; //Increment dry counter by 1
+    digitalWrite(greenLED, LOW);
+    digitalWrite(redLED, HIGH);
+    digitalWrite(pump, HIGH);
+    delay(2000); //add delay to have pump run for 2 seconds
+    digitalWrite(pump, LOW); //turn off pump
+  }
+    
+  else{
+    dryCount=0;	//reset counter
+    digitalWrite(pump, LOW);	//redundant; but just in case there is still power to pin
+    digitalWrite(redLED, LOW);
+    digitalWrite(greenLED, HIGH);
+  }
+    
+    if(dryCount>=maxDry){//If has read dry twenty or more times
+      digitalWrite(yellowLED, HIGH);  //turn on yellow light to indicate possbile empty container or other issues
+    }
+    else{
+      digitalWrite(yellowLED, LOW); //keep yellow light off unless read dry twenty or more times
+    }
+  }
+  
+  delay(delayTime);
+  
+}
+
